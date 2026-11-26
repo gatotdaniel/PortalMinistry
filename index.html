@@ -1074,7 +1074,7 @@
   <!-- ===================================================================== -->
   <script>
     // =========================================================================
-    // KONFIGURASI SUPABASE (ISI DI SINI SEBELUM DEPLOY KE VERCEL)
+    // KONFIGURASI SUPABASE (SUDAH DIISI DENGAN KREDENSIAL PROJECT ANDA)
     // =========================================================================
     const SUPABASE_URL = 'https://ekigssdfleuabmyvkejy.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVraWdzc2RmbGV1YWJteXZrZWp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU2NDQ5ODMsImV4cCI6MjExMTIyMDk4M30.czP5n_6Nl1GnfjGmzZEQv9twzRihrfVOs_kqHOUjbyg';
@@ -1091,7 +1091,11 @@
         SUPABASE_ANON_KEY &&
         SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY'
       ) {
-        return { url: SUPABASE_URL.trim(), key: SUPABASE_ANON_KEY.trim() };
+        // Hapus akhiran /rest/v1 atau trailing slash jika ada agar sesuai dengan SDK supabase-js
+        const cleanUrl = SUPABASE_URL.trim()
+          .replace(/\/rest\/v1\/?$/i, '')
+          .replace(/\/+$/, '');
+        return { url: cleanUrl, key: SUPABASE_ANON_KEY.trim() };
       }
       return null;
     }
@@ -1157,23 +1161,33 @@
 
         if (firstErr) throw firstErr;
 
+        // Jika tabel di Supabase masih kosong pada deploy pertama, seed data awal secara otomatis
         if (resMinistries.data && resMinistries.data.length > 0) {
           appState.ministries = resMinistries.data.map(r => ({ id: r.id, name: r.name }));
+        } else {
+          await Promise.all(appState.ministries.map(m => dbUpsertMinistry(m)));
         }
+
         if (resTemplates.data && resTemplates.data.length > 0) {
           appState.templates = resTemplates.data.map(r => ({
             id: r.id,
             name: r.name,
             slots: Array.isArray(r.slots) ? r.slots : []
           }));
+        } else {
+          await Promise.all(appState.templates.map(t => dbUpsertTemplate(t)));
         }
+
         if (resIbadah.data && resIbadah.data.length > 0) {
           appState.ibadahList = resIbadah.data.map(r => ({
             id: r.id,
             name: r.name,
             templateId: r.template_id
           }));
+        } else {
+          await Promise.all(appState.ibadahList.map(i => dbUpsertIbadah(i)));
         }
+
         if (resUsers.data && resUsers.data.length > 0) {
           appState.users = resUsers.data.map(r => ({
             id: r.id,
@@ -1185,7 +1199,10 @@
             role: r.role || 'Pelayan',
             approvalStatus: r.approval_status || 'approved'
           }));
+        } else {
+          await Promise.all(appState.users.map(u => dbUpsertUser(u)));
         }
+
         if (resPeriods.data && resPeriods.data.length > 0) {
           appState.periods = resPeriods.data.map(r => ({
             id: r.id,
@@ -1198,6 +1215,8 @@
           if (!appState.periods.some(p => p.id === appState.activePeriodId)) {
             appState.activePeriodId = appState.periods[0].id;
           }
+        } else {
+          await Promise.all(appState.periods.map(p => dbUpsertPeriod(p)));
         }
 
         // Rebuild availability map from database rows
@@ -1242,9 +1261,11 @@
         return true;
       } catch (err) {
         console.error('Supabase sync error:', err);
-        if (showErrorToast) {
-          showToast('Gagal Sinkronisasi Supabase', err.message || 'Periksa tabel SQL dan kredensial Supabase.', 'warning');
-        }
+        showToast(
+          'Koneksi Supabase Gagal',
+          err.message || 'Pastikan 8 tabel SQL sudah dibuat & RLS dinonaktifkan/diizinkan.',
+          'warning'
+        );
         return false;
       }
     }
