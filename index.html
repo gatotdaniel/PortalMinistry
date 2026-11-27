@@ -34,11 +34,6 @@
     }
     .animate-fade-slide { animation: fadeSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-    .glass-card {
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(10px);
-    }
-
     .sticky-col-shadow {
       box-shadow: 4px 0 12px -6px rgba(15, 23, 42, 0.12);
     }
@@ -70,7 +65,7 @@
       <!-- Auth Header -->
       <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white px-6 pt-7 pb-6 text-center relative overflow-hidden">
         <div class="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-indigo-500/20 blur-2xl pointer-events-none"></div>
-        <div class="w-13 h-13 w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/35 mx-auto mb-3.5 ring-1 ring-white/25">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/35 mx-auto mb-3.5 ring-1 ring-white/25">
           <i data-lucide="church" class="w-6 h-6 text-white"></i>
         </div>
         <h1 class="font-display font-extrabold text-xl tracking-tight">Portal Ministry</h1>
@@ -264,6 +259,26 @@
 
       <!-- TAB 1: AVAILABILITY CONFIRMATION -->
       <div id="pelayan-view-avail" class="p-4 space-y-3.5 flex-1">
+        <!-- Info Waktu Server & Batas Cutoff -->
+        <div class="rounded-xl bg-slate-100 border border-slate-200/80 px-3 py-2 flex items-center justify-between gap-2 text-[11px] text-slate-600">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+            <span>Batas: <strong id="pelayan-cutoff-deadline-label" class="text-slate-900">-</strong></span>
+          </span>
+          <span id="pelayan-server-clock-badge" class="font-mono text-[10px] px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-500 shrink-0">WIB</span>
+        </div>
+
+        <!-- Banner Peringatan Jika Cutoff Sudah Lewat -->
+        <div id="pelayan-cutoff-locked-banner" class="hidden rounded-2xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-amber-900 space-y-1">
+          <div class="font-display font-bold flex items-center gap-1.5 text-amber-800">
+            <i data-lucide="lock" class="w-4 h-4 text-amber-600 shrink-0"></i>
+            <span>Periode Konfirmasi Telah Ditutup (Lewat Tgl 22)</span>
+          </div>
+          <p class="text-[11px] text-amber-800/90 leading-relaxed">
+            Batas akhir konfirmasi untuk periode ini telah berakhir. Anda otomatis dianggap <strong>Siap Melayani</strong> di setiap minggu. Silakan pilih <strong>periode bulan berikutnya</strong> di atas untuk mengisi jadwal berhalangan baru.
+          </p>
+        </div>
+
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-slate-700">Status Konfirmasi Bulan Ini</span>
           <span id="pelayan-status-pill" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Belum Disimpan</span>
@@ -271,7 +286,7 @@
 
         <div id="pelayan-weeks-list" class="space-y-2.5"></div>
 
-        <button type="button" onclick="saveCurrentUserAvailability()"
+        <button type="button" id="pelayan-save-avail-btn" onclick="saveCurrentUserAvailability()"
           class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-display font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition cursor-pointer">
           <i data-lucide="check-circle-2" class="w-4 h-4"></i>
           <span>Simpan Konfirmasi Pelayanan</span>
@@ -303,7 +318,7 @@
     <div id="sidebar-backdrop" onclick="toggleMobileSidebar(false)" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-30 lg:hidden"></div>
 
     <!-- Vertical Sidebar -->
-    <aside id="petugas-sidebar" class="fixed lg:sticky top-0 left-0 z-40 h-screen w-68 w-64 bg-slate-900 text-slate-200 flex flex-col justify-between transition-transform duration-200 -translate-x-full lg:translate-x-0 shrink-0 border-r border-slate-800">
+    <aside id="petugas-sidebar" class="fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-slate-900 text-slate-200 flex flex-col justify-between transition-transform duration-200 -translate-x-full lg:translate-x-0 shrink-0 border-r border-slate-800">
       <div class="overflow-y-auto flex-1">
         <!-- Brand Header -->
         <div class="px-5 py-5 border-b border-slate-800/90 flex items-center justify-between">
@@ -422,8 +437,16 @@
             </div>
           </div>
 
-          <!-- Period Controls (Select, Edit, Delete, Add Month) -->
+          <!-- Period & Server Clock Controls -->
           <div id="admin-period-control" class="flex flex-wrap items-center gap-2">
+            <!-- Tombol Waktu Server / Simulasi Cutoff (Testing Admin) -->
+            <button type="button" id="btn-open-sim-date" onclick="openSimulateDateModal()"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition cursor-pointer"
+              title="Uji aturan Cutoff Tanggal 22 dengan simulasi waktu server">
+              <i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-indigo-600"></i>
+              <span id="sim-date-btn-label">Waktu Server (WIB)</span>
+            </button>
+
             <div class="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-2xs">
               <select id="petugas-period-select" onchange="handlePeriodChange(this.value)"
                 class="bg-transparent text-xs font-bold text-slate-800 pl-2.5 pr-2 py-1 focus:outline-none cursor-pointer">
@@ -461,7 +484,7 @@
 
             <div class="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-500">Sudah Konfirmasi</span>
+                <span class="text-xs font-semibold text-slate-500">Sudah Konfirmasi / Auto-Siap</span>
                 <span id="stat-submitted-pct" class="text-xs font-bold text-emerald-600 tabular-nums">0%</span>
               </div>
               <div id="stat-submitted-count" class="font-display font-extrabold text-2xl text-emerald-600 mt-1 tabular-nums">0</div>
@@ -497,6 +520,7 @@
               class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-indigo-500 focus:outline-none cursor-pointer">
               <option value="all">Semua Status Konfirmasi</option>
               <option value="submitted">Sudah Konfirmasi</option>
+              <option value="auto_cutoff">Auto-Siap (Lewat Cutoff Tgl 22)</option>
               <option value="pending">Belum Konfirmasi</option>
               <option value="has_unavailable">Ada Tanggal Berhalangan</option>
             </select>
@@ -760,6 +784,58 @@
   <!-- ===================================================================== -->
   <!-- 4. MODALS                                                             -->
   <!-- ===================================================================== -->
+
+  <!-- Modal: Simulasi Tanggal Cutoff (Testing Admin) -->
+  <div id="modal-simulate-date" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-fade-slide">
+      <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <h3 class="font-display font-bold text-sm">Simulasi Waktu Cutoff (Testing Mode)</h3>
+          <p class="text-[11px] text-indigo-300 mt-0.5">Uji penguncian form pelayan sebelum &amp; sesudah tanggal 22</p>
+        </div>
+        <button type="button" onclick="closeModal('modal-simulate-date')" class="text-slate-400 hover:text-white text-lg leading-none cursor-pointer">&times;</button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs space-y-1.5">
+          <div class="flex justify-between gap-2">
+            <span class="text-slate-500">Waktu Server Asli (WIB):</span>
+            <strong id="sim-real-server-time" class="text-slate-900 font-mono">-</strong>
+          </div>
+          <div class="flex justify-between gap-2">
+            <span class="text-slate-500">Waktu Aktif di Sistem:</span>
+            <strong id="sim-effective-time" class="text-indigo-700 font-mono">-</strong>
+          </div>
+          <div class="flex justify-between gap-2">
+            <span class="text-slate-500">Cutoff Periode Aktif:</span>
+            <strong id="sim-active-period-cutoff" class="text-rose-700 font-mono">-</strong>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Pilih Tanggal &amp; Jam Simulasi (WIB)</label>
+          <input type="datetime-local" id="sim-datetime-input"
+            class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono focus:border-indigo-500 focus:outline-none">
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <button type="button" onclick="applyQuickSimPreset('before')" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold cursor-pointer">
+              Set Tgl 21 (Sebelum Cutoff)
+            </button>
+            <button type="button" onclick="applyQuickSimPreset('after')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold cursor-pointer">
+              Set Tgl 23 (Sesudah Cutoff)
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-100">
+          <button type="button" onclick="resetSimulatedDate()" class="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold cursor-pointer">
+            Gunakan Waktu Server Asli
+          </button>
+          <button type="button" onclick="saveSimulatedDate()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer">
+            Terapkan Simulasi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Edit Profil -->
   <div id="modal-edit-profile" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
@@ -1066,23 +1142,27 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- TOAST NOTIFICATION -->
+  <!-- TOAST NOTIFICATION                                                    -->
+  <!-- ===================================================================== -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
 
   <!-- ===================================================================== -->
-  <!-- JAVASCRIPT APPLICATION LOGIC + SUPABASE CLOUD INTEGRATION             -->
+  <!-- JAVASCRIPT APPLICATION LOGIC + SUPABASE + SERVER-TIME CUTOFF          -->
   <!-- ===================================================================== -->
   <script>
     // =========================================================================
-    // KONFIGURASI SUPABASE (SUDAH DIISI DENGAN KREDENSIAL PROJECT ANDA)
+    // KONFIGURASI SUPABASE
     // =========================================================================
     const SUPABASE_URL = 'https://ekigssdfleuabmyvkejy.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVraWdzc2RmbGV1YWJteXZrZWp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU2NDQ5ODMsImV4cCI6MjExMTIyMDk4M30.czP5n_6Nl1GnfjGmzZEQv9twzRihrfVOs_kqHOUjbyg';
 
-    const STORAGE_KEY = 'pelayanansync_v9_supabase_ready';
+    const STORAGE_KEY = 'pelayanansync_v10_cutoff_ready';
     let supabaseClient = null;
     let isSupabaseConnected = false;
     let openMinisterPickerId = null;
+
+    // Offset waktu server (ms) = Waktu Server Supabase - Date.now() lokal
+    let serverTimeOffsetMs = 0;
 
     function getResolvedSupabaseCredentials() {
       if (
@@ -1091,10 +1171,7 @@
         SUPABASE_ANON_KEY &&
         SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY'
       ) {
-        // Hapus akhiran /rest/v1 atau trailing slash jika ada agar sesuai dengan SDK supabase-js
-        const cleanUrl = SUPABASE_URL.trim()
-          .replace(/\/rest\/v1\/?$/i, '')
-          .replace(/\/+$/, '');
+        const cleanUrl = SUPABASE_URL.trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
         return { url: cleanUrl, key: SUPABASE_ANON_KEY.trim() };
       }
       return null;
@@ -1118,21 +1195,29 @@
       return isSupabaseConnected;
     }
 
-    async function manualRefreshFromCloud() {
-      if (!isSupabaseConnected) {
-        showToast('Mode Lokal Aktif', 'Isi SUPABASE_URL dan SUPABASE_ANON_KEY di kode sebelum deploy.', 'info');
-        return;
-      }
-      const ok = await syncAllFromSupabase(true);
-      if (ok) {
-        routeAuthenticatedUser();
-        showToast('Data Tersinkronisasi', 'Data terbaru berhasil dimuat dari Supabase.', 'success');
-      }
-    }
-
     async function syncAllFromSupabase(showErrorToast = false) {
       if (!supabaseClient) return false;
       try {
+        // Sinkronisasi jam atomik server via HTTP Date header Supabase
+        try {
+          const creds = getResolvedSupabaseCredentials();
+          if (creds) {
+            const headRes = await fetch(`${creds.url}/rest/v1/`, {
+              method: 'HEAD',
+              headers: { apikey: creds.key }
+            });
+            const serverDateHeader = headRes.headers.get('date');
+            if (serverDateHeader) {
+              const serverMs = new Date(serverDateHeader).getTime();
+              if (!Number.isNaN(serverMs)) {
+                serverTimeOffsetMs = serverMs - Date.now();
+              }
+            }
+          }
+        } catch (clockErr) {
+          console.warn('Clock sync fallback to local:', clockErr);
+        }
+
         const [
           resMinistries,
           resTemplates,
@@ -1161,33 +1246,35 @@
 
         if (firstErr) throw firstErr;
 
-        // Jika tabel di Supabase masih kosong pada deploy pertama, seed data awal secara otomatis
-        if (resMinistries.data && resMinistries.data.length > 0) {
-          appState.ministries = resMinistries.data.map(r => ({ id: r.id, name: r.name }));
-        } else {
-          await Promise.all(appState.ministries.map(m => dbUpsertMinistry(m)));
+        // Auto-seed jika database Supabase masih benar-benar kosong
+        if ((!resUsers.data || resUsers.data.length === 0) && (!resMinistries.data || resMinistries.data.length === 0)) {
+          await Promise.all([
+            ...DEFAULT_MINISTRIES.map(m => dbUpsertMinistry(m)),
+            ...DEFAULT_TEMPLATES.map(t => dbUpsertTemplate(t)),
+            ...DEFAULT_IBADAH.map(i => dbUpsertIbadah(i)),
+            ...DEFAULT_USERS.map(u => dbUpsertUser(u)),
+            ...DEFAULT_PERIODS.map(p => dbUpsertPeriod(p))
+          ]);
+          return true;
         }
 
+        if (resMinistries.data && resMinistries.data.length > 0) {
+          appState.ministries = resMinistries.data.map(r => ({ id: r.id, name: r.name }));
+        }
         if (resTemplates.data && resTemplates.data.length > 0) {
           appState.templates = resTemplates.data.map(r => ({
             id: r.id,
             name: r.name,
             slots: Array.isArray(r.slots) ? r.slots : []
           }));
-        } else {
-          await Promise.all(appState.templates.map(t => dbUpsertTemplate(t)));
         }
-
         if (resIbadah.data && resIbadah.data.length > 0) {
           appState.ibadahList = resIbadah.data.map(r => ({
             id: r.id,
             name: r.name,
             templateId: r.template_id
           }));
-        } else {
-          await Promise.all(appState.ibadahList.map(i => dbUpsertIbadah(i)));
         }
-
         if (resUsers.data && resUsers.data.length > 0) {
           appState.users = resUsers.data.map(r => ({
             id: r.id,
@@ -1199,10 +1286,7 @@
             role: r.role || 'Pelayan',
             approvalStatus: r.approval_status || 'approved'
           }));
-        } else {
-          await Promise.all(appState.users.map(u => dbUpsertUser(u)));
         }
-
         if (resPeriods.data && resPeriods.data.length > 0) {
           appState.periods = resPeriods.data.map(r => ({
             id: r.id,
@@ -1215,11 +1299,8 @@
           if (!appState.periods.some(p => p.id === appState.activePeriodId)) {
             appState.activePeriodId = appState.periods[0].id;
           }
-        } else {
-          await Promise.all(appState.periods.map(p => dbUpsertPeriod(p)));
         }
 
-        // Rebuild availability map from database rows
         if (resAvail.data) {
           const freshAvail = {};
           resAvail.data.forEach(row => {
@@ -1234,7 +1315,6 @@
           appState.availability = freshAvail;
         }
 
-        // Rebuild week slot configs
         if (resSlotConfigs.data) {
           const freshConfigs = {};
           resSlotConfigs.data.forEach(row => {
@@ -1245,7 +1325,6 @@
           appState.weekSlotConfigs = freshConfigs;
         }
 
-        // Rebuild schedules map
         if (resSchedules.data) {
           const freshSchedules = {};
           resSchedules.data.forEach(row => {
@@ -1261,11 +1340,9 @@
         return true;
       } catch (err) {
         console.error('Supabase sync error:', err);
-        showToast(
-          'Koneksi Supabase Gagal',
-          err.message || 'Pastikan 8 tabel SQL sudah dibuat & RLS dinonaktifkan/diizinkan.',
-          'warning'
-        );
+        if (showErrorToast) {
+          showToast('Gagal Sinkronisasi Supabase', err.message || 'Periksa tabel SQL dan hak akses Supabase.', 'warning');
+        }
         return false;
       }
     }
@@ -1472,11 +1549,174 @@
       periods: JSON.parse(JSON.stringify(DEFAULT_PERIODS)),
       availability: {},
       weekSlotConfigs: {},
-      schedules: {}
+      schedules: {},
+      simulatedNowIso: null
     };
 
     let matrixOverrideContext = { userId: null, weekIdx: 0, status: 'available' };
 
+    // =========================================================================
+    // LOGIKA WAKTU SERVER (WIB / UTC+7) & ATURAN CUTOFF TANGGAL 22
+    // =========================================================================
+    const MONTH_NAMES_ID = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const MONTH_SHORT_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V'];
+
+    function getTrueServerNow() {
+      return new Date(Date.now() + serverTimeOffsetMs);
+    }
+
+    function getEffectiveNow() {
+      if (appState.simulatedNowIso) {
+        const sim = new Date(appState.simulatedNowIso);
+        if (!Number.isNaN(sim.getTime())) return sim;
+      }
+      return getTrueServerNow();
+    }
+
+    function getWibComponents(dateObj) {
+      const wibMs = dateObj.getTime() + 7 * 60 * 60 * 1000;
+      const d = new Date(wibMs);
+      return {
+        year: d.getUTCFullYear(),
+        month: d.getUTCMonth(),
+        day: d.getUTCDate(),
+        hour: d.getUTCHours(),
+        minute: d.getUTCMinutes()
+      };
+    }
+
+    function formatWibDateTime(dateObj) {
+      const c = getWibComponents(dateObj);
+      const pad = n => String(n).padStart(2, '0');
+      return `${c.day} ${MONTH_SHORT_ID[c.month]} ${c.year}, ${pad(c.hour)}:${pad(c.minute)} WIB`;
+    }
+
+    function parsePeriodYearMonth(periodName) {
+      const clean = (periodName || '').trim().toLowerCase();
+      const yearMatch = clean.match(/(20\d{2})/);
+      const year = yearMatch ? parseInt(yearMatch[1], 10) : getWibComponents(getEffectiveNow()).year;
+      const monthAliases = [
+        ['januari', 'january', 'jan'],
+        ['februari', 'february', 'feb'],
+        ['maret', 'march', 'mar'],
+        ['april', 'apr'],
+        ['mei', 'may'],
+        ['juni', 'june', 'jun'],
+        ['juli', 'july', 'jul'],
+        ['agustus', 'august', 'agu', 'agt', 'aug'],
+        ['september', 'sep', 'sept'],
+        ['oktober', 'october', 'okt', 'oct'],
+        ['november', 'nov'],
+        ['desember', 'december', 'des', 'dec']
+      ];
+      let monthIndex = -1;
+      for (let m = 0; m < monthAliases.length; m++) {
+        if (monthAliases[m].some(alias => clean.includes(alias))) {
+          monthIndex = m;
+          break;
+        }
+      }
+      return monthIndex === -1 ? null : { year, monthIndex };
+    }
+
+    /**
+     * Menghitung batas akhir konfirmasi untuk sebuah periode bulan:
+     * Tanggal 22 pukul 23:59:59 WIB pada bulan sebelum periode pelayanan (H-1).
+     * Contoh: Periode "Desember 2026" -> Cutoff adalah "22 November 2026 (23:59 WIB)".
+     */
+    function getPeriodCutoffInfo(period) {
+      const parsed = parsePeriodYearMonth(period?.name || '');
+      if (!parsed) {
+        return { isPassed: false, deadlineLabel: 'Tanggal 22 H-1', cutoffYear: 2026, cutoffMonth: 10 };
+      }
+      let cutoffYear = parsed.year;
+      let cutoffMonth = parsed.monthIndex - 1;
+      if (cutoffMonth < 0) {
+        cutoffMonth = 11;
+        cutoffYear -= 1;
+      }
+
+      // 22 [cutoffMonth] [cutoffYear] 23:59:59.999 WIB == 16:59:59.999 UTC pada tanggal 22
+      const deadlineUtcMs = Date.UTC(cutoffYear, cutoffMonth, 22, 16, 59, 59, 999);
+      const nowMs = getEffectiveNow().getTime();
+      const isPassed = nowMs > deadlineUtcMs;
+
+      return {
+        isPassed,
+        deadlineLabel: `22 ${MONTH_NAMES_ID[cutoffMonth]} ${cutoffYear} (23:59 WIB)`,
+        cutoffYear,
+        cutoffMonth
+      };
+    }
+
+    function updateSimDateHeaderBadge() {
+      const btnLabel = document.getElementById('sim-date-btn-label');
+      const btn = document.getElementById('btn-open-sim-date');
+      if (!btnLabel || !btn) return;
+      const nowWib = formatWibDateTime(getEffectiveNow());
+      if (appState.simulatedNowIso) {
+        btnLabel.textContent = `Simulasi: ${nowWib}`;
+        btn.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold shadow-2xs transition cursor-pointer';
+      } else {
+        btnLabel.textContent = nowWib;
+        btn.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition cursor-pointer';
+      }
+    }
+
+    function openSimulateDateModal() {
+      const period = getActivePeriod();
+      const cutoff = getPeriodCutoffInfo(period);
+      document.getElementById('sim-real-server-time').textContent = formatWibDateTime(getTrueServerNow());
+      document.getElementById('sim-effective-time').textContent = formatWibDateTime(getEffectiveNow());
+      document.getElementById('sim-active-period-cutoff').textContent = cutoff.deadlineLabel;
+
+      const c = getWibComponents(getEffectiveNow());
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('sim-datetime-input').value = `${c.year}-${pad(c.month + 1)}-${pad(c.day)}T${pad(c.hour)}:${pad(c.minute)}`;
+
+      const modal = document.getElementById('modal-simulate-date');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function applyQuickSimPreset(mode) {
+      const period = getActivePeriod();
+      const cutoff = getPeriodCutoffInfo(period);
+      const pad = n => String(n).padStart(2, '0');
+      const day = mode === 'before' ? 21 : 23;
+      const hour = mode === 'before' ? '14:00' : '08:00';
+      document.getElementById('sim-datetime-input').value =
+        `${cutoff.cutoffYear}-${pad(cutoff.cutoffMonth + 1)}-${pad(day)}T${hour}`;
+    }
+
+    function saveSimulatedDate() {
+      const val = document.getElementById('sim-datetime-input').value;
+      if (!val) return;
+      const parsed = new Date(`${val}:00+07:00`);
+      if (Number.isNaN(parsed.getTime())) return;
+
+      appState.simulatedNowIso = parsed.toISOString();
+      saveState();
+      closeModal('modal-simulate-date');
+      routeAuthenticatedUser();
+      showToast('Simulasi Tanggal Aktif', `Waktu sistem disimulasikan ke ${formatWibDateTime(parsed)}.`, 'info');
+    }
+
+    function resetSimulatedDate() {
+      appState.simulatedNowIso = null;
+      saveState();
+      closeModal('modal-simulate-date');
+      routeAuthenticatedUser();
+      showToast('Waktu Server Dipulihkan', 'Sistem kembali menggunakan waktu server WIB yang sebenarnya.', 'success');
+    }
+
+    // =========================================================================
+    // STATE HELPERS
+    // =========================================================================
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -1754,6 +1994,7 @@
         petugasScreen.classList.remove('hidden');
         document.getElementById('sidebar-user-name').textContent = user.name;
         document.getElementById('sidebar-user-username').textContent = '@' + user.username;
+        updateSimDateHeaderBadge();
         navigateAdminPage(appState.activeAdminPage || 'matrix');
       } else {
         petugasScreen.classList.add('hidden');
@@ -1769,17 +2010,10 @@
     // =========================================================================
     // PERIODE BULAN (SELECT, ADD, EDIT, DELETE - 4 ATAU 5 MINGGU)
     // =========================================================================
-    const MONTH_NAMES_ID = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-    const MONTH_SHORT_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V'];
-
     function computeSundaysForMonthYear(labelText) {
       const clean = (labelText || '').trim().toLowerCase();
       const yearMatch = clean.match(/(20\d{2})/);
-      const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+      const year = yearMatch ? parseInt(yearMatch[1], 10) : getWibComponents(getEffectiveNow()).year;
 
       const monthAliases = [
         ['januari', 'january', 'jan'],
@@ -1824,8 +2058,8 @@
     function suggestNextMonthPeriod() {
       const lastPeriod = appState.periods[appState.periods.length - 1];
       if (!lastPeriod) {
-        const now = new Date();
-        const name = `${MONTH_NAMES_ID[now.getMonth()]} ${now.getFullYear()}`;
+        const now = getWibComponents(getEffectiveNow());
+        const name = `${MONTH_NAMES_ID[now.month]} ${now.year}`;
         return { name, weeks: computeSundaysForMonthYear(name) || [] };
       }
       const clean = lastPeriod.name.toLowerCase();
@@ -2033,7 +2267,7 @@
     }
 
     // =========================================================================
-    // PORTAL PELAYAN (STANDALONE MOBILE VIEW)
+    // PORTAL PELAYAN (STANDALONE MOBILE VIEW + CUTOFF TGL 22)
     // =========================================================================
     function switchPetugasPortalMode(mode) {
       appState.petugasPortalMode = mode;
@@ -2065,11 +2299,22 @@
       const period = getActivePeriod();
       if (!user || !period) return;
 
+      const cutoff = getPeriodCutoffInfo(period);
+      const isCutoffLocked = cutoff.isPassed;
+
       document.getElementById('pelayan-header-name').textContent = user.name;
       document.getElementById('pelayan-header-username').textContent = user.username;
       document.getElementById('pelayan-header-ministries').innerHTML = (user.ministries || []).map(m =>
         `<span class="px-2 py-0.5 rounded-full bg-white/15 text-white text-[10px] font-semibold">${escapeHtml(m)}</span>`
       ).join('');
+
+      document.getElementById('pelayan-cutoff-deadline-label').textContent = cutoff.deadlineLabel;
+      document.getElementById('pelayan-server-clock-badge').textContent =
+        (appState.simulatedNowIso ? 'SIM ' : '') + formatWibDateTime(getEffectiveNow());
+
+      const lockedBanner = document.getElementById('pelayan-cutoff-locked-banner');
+      if (isCutoffLocked) lockedBanner.classList.remove('hidden');
+      else lockedBanner.classList.add('hidden');
 
       const pendingBanner = document.getElementById('pelayan-pending-approval-banner');
       if (user.role === 'Petugas' && user.approvalStatus === 'pending') pendingBanner.classList.remove('hidden');
@@ -2078,9 +2323,13 @@
       const userAvail = appState.availability[period.id]?.[user.id] || [];
       const allSubmitted = userAvail.length > 0 && userAvail.every(w => w.submitted);
       const statusPill = document.getElementById('pelayan-status-pill');
+
       if (allSubmitted) {
         statusPill.textContent = 'Terkonfirmasi';
         statusPill.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+      } else if (isCutoffLocked) {
+        statusPill.textContent = 'Auto-Siap (Cutoff Tgl 22)';
+        statusPill.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700';
       } else {
         statusPill.textContent = 'Belum Disimpan';
         statusPill.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700';
@@ -2089,35 +2338,50 @@
       const weeksListEl = document.getElementById('pelayan-weeks-list');
       weeksListEl.innerHTML = period.weeks.map((week, idx) => {
         const entry = userAvail[idx] || { status: 'available', reason: '', submitted: false };
-        const isAvail = entry.status === 'available';
+        const effectiveStatus = (!entry.submitted && isCutoffLocked) ? 'available' : entry.status;
+        const isAvail = effectiveStatus === 'available';
+
         return `
-          <div class="bg-white rounded-2xl border ${isAvail ? 'border-slate-200' : 'border-rose-200 bg-rose-50/30'} p-3.5 shadow-2xs space-y-2.5">
+          <div class="bg-white rounded-2xl border ${isAvail ? 'border-slate-200' : 'border-rose-200 bg-rose-50/30'} ${isCutoffLocked ? 'opacity-85' : ''} p-3.5 shadow-2xs space-y-2.5">
             <div class="flex items-center justify-between gap-2">
               <div>
                 <div class="font-display font-bold text-xs text-slate-900">${escapeHtml(week.label)} • <span class="text-indigo-600">${escapeHtml(week.date)}</span></div>
                 <div class="text-[11px] text-slate-500">${escapeHtml(week.theme || '')}</div>
               </div>
               <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/80 shrink-0">
-                <button type="button" onclick="setPelayanWeekStatus(${idx}, 'available')"
-                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${isAvail ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600'}">
+                <button type="button" ${isCutoffLocked ? 'disabled' : `onclick="setPelayanWeekStatus(${idx}, 'available')"`}
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${isCutoffLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isAvail ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600'}">
                   Bisa
                 </button>
-                <button type="button" onclick="setPelayanWeekStatus(${idx}, 'unavailable')"
-                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${!isAvail ? 'bg-rose-600 text-white shadow-2xs' : 'text-slate-600'}">
+                <button type="button" ${isCutoffLocked ? 'disabled' : `onclick="setPelayanWeekStatus(${idx}, 'unavailable')"`}
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${isCutoffLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${!isAvail ? 'bg-rose-600 text-white shadow-2xs' : 'text-slate-600'}">
                   Berhalangan
                 </button>
               </div>
             </div>
             ${!isAvail ? `
               <div>
-                <input type="text" value="${escapeHtml(entry.reason || '')}" oninput="setPelayanWeekReason(${idx}, this.value)"
+                <input type="text" ${isCutoffLocked ? 'disabled' : ''} value="${escapeHtml(entry.reason || '')}" oninput="setPelayanWeekReason(${idx}, this.value)"
                   placeholder="Alasan berhalangan (opsional, misal: luar kota)"
-                  class="w-full rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-rose-400 focus:outline-none">
+                  class="w-full rounded-xl border border-rose-200 bg-white disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs text-slate-800 focus:border-rose-400 focus:outline-none">
               </div>
             ` : ''}
           </div>
         `;
       }).join('');
+
+      const saveBtn = document.getElementById('pelayan-save-avail-btn');
+      if (saveBtn) {
+        if (isCutoffLocked) {
+          saveBtn.disabled = true;
+          saveBtn.className = 'w-full py-3 rounded-xl bg-slate-300 text-slate-500 font-display font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed';
+          saveBtn.innerHTML = `<i data-lucide="lock" class="w-4 h-4"></i><span>Konfirmasi Ditutup (Lewat Tanggal 22)</span>`;
+        } else {
+          saveBtn.disabled = false;
+          saveBtn.className = 'w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-display font-bold text-xs shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition cursor-pointer';
+          saveBtn.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>Simpan Konfirmasi Pelayanan</span>`;
+        }
+      }
 
       // Render My Duties & Church Schedule
       const myDuties = [];
@@ -2200,12 +2464,18 @@
           </div>
         `;
       }).join('');
+
+      lucide.createIcons();
     }
 
     function setPelayanWeekStatus(weekIdx, status) {
       const user = getCurrentUser();
       const period = getActivePeriod();
       if (!user || !period) return;
+      if (getPeriodCutoffInfo(period).isPassed) {
+        showToast('Batas Waktu Berakhir', 'Periode konfirmasi telah ditutup setelah tanggal 22.', 'warning');
+        return;
+      }
       appState.availability[period.id][user.id][weekIdx].status = status;
       if (status === 'available') {
         appState.availability[period.id][user.id][weekIdx].reason = '';
@@ -2216,7 +2486,7 @@
     function setPelayanWeekReason(weekIdx, reason) {
       const user = getCurrentUser();
       const period = getActivePeriod();
-      if (!user || !period) return;
+      if (!user || !period || getPeriodCutoffInfo(period).isPassed) return;
       appState.availability[period.id][user.id][weekIdx].reason = reason;
     }
 
@@ -2224,6 +2494,12 @@
       const user = getCurrentUser();
       const period = getActivePeriod();
       if (!user || !period) return;
+
+      if (getPeriodCutoffInfo(period).isPassed) {
+        showToast('Konfirmasi Ditutup', 'Batas waktu tanggal 22 sudah terlewati. Anda otomatis dianggap siap melayani.', 'warning');
+        renderPelayanStandaloneView();
+        return;
+      }
 
       const rows = appState.availability[period.id][user.id];
       rows.forEach(r => { r.submitted = true; });
@@ -2387,7 +2663,7 @@
     }
 
     // =========================================================================
-    // PAGE A: MATRIKS KETERSEDIAAN
+    // PAGE A: MATRIKS KETERSEDIAAN (DENGAN LOGIKA AUTO-SIAP CUTOFF TGL 22)
     // =========================================================================
     function renderMatrixView() {
       const period = getActivePeriod();
@@ -2401,6 +2677,7 @@
       const searchQ = (document.getElementById('matrix-search').value || '').trim().toLowerCase();
       const selectedRole = roleFilterEl.value;
       const statusFilter = document.getElementById('matrix-status-filter').value;
+      const cutoff = getPeriodCutoffInfo(period);
 
       const allUsers = [...appState.users].sort((a, b) => a.name.localeCompare(b.name, 'id'));
       const totalUsers = allUsers.length;
@@ -2409,9 +2686,12 @@
 
       allUsers.forEach(u => {
         const uAvail = appState.availability[period.id]?.[u.id] || [];
-        if (uAvail.length && uAvail.every(w => w.submitted)) submittedCount++;
+        const isManualSubmitted = uAvail.length && uAvail.every(w => w.submitted);
+        if (isManualSubmitted || cutoff.isPassed) submittedCount++;
         period.weeks.forEach((_, wIdx) => {
-          if ((uAvail[wIdx]?.status || 'available') === 'available') {
+          const entry = uAvail[wIdx] || { status: 'available', submitted: false };
+          const effectiveStatus = (!entry.submitted && cutoff.isPassed) ? 'available' : entry.status;
+          if (effectiveStatus === 'available') {
             weeklyReadyCounts[wIdx]++;
           }
         });
@@ -2435,11 +2715,13 @@
         const matchRole = selectedRole === 'all' || (u.ministries || []).includes(selectedRole);
         const uAvail = appState.availability[period.id]?.[u.id] || [];
         const isSubmitted = uAvail.length && uAvail.every(w => w.submitted);
-        const hasUnavail = uAvail.some(w => w.status === 'unavailable');
+        const isAutoCutoff = !isSubmitted && cutoff.isPassed;
+        const hasUnavail = uAvail.some(w => (w.submitted || !cutoff.isPassed) && w.status === 'unavailable');
 
         let matchStatus = true;
         if (statusFilter === 'submitted') matchStatus = isSubmitted;
-        else if (statusFilter === 'pending') matchStatus = !isSubmitted;
+        else if (statusFilter === 'auto_cutoff') matchStatus = isAutoCutoff;
+        else if (statusFilter === 'pending') matchStatus = !isSubmitted && !cutoff.isPassed;
         else if (statusFilter === 'has_unavailable') matchStatus = hasUnavail;
 
         return matchSearch && matchRole && matchStatus;
@@ -2450,7 +2732,7 @@
         <tr class="bg-slate-900 text-white text-xs uppercase tracking-wider">
           <th class="py-3.5 px-4 font-semibold sticky left-0 bg-slate-900 z-10 min-w-[210px]">Nama Pelayan</th>
           <th class="py-3.5 px-4 font-semibold min-w-[160px]">Bidang Pelayanan</th>
-          <th class="py-3.5 px-4 font-semibold text-center min-w-[115px]">Konfirmasi</th>
+          <th class="py-3.5 px-4 font-semibold text-center min-w-[130px]">Konfirmasi</th>
           ${period.weeks.map(w => `
             <th class="py-3.5 px-3 font-semibold text-center min-w-[130px]">
               <div>${escapeHtml(w.label)}</div>
@@ -2473,10 +2755,12 @@
         tbody.innerHTML = filteredUsers.map(u => {
           const uAvail = appState.availability[period.id]?.[u.id] || [];
           const isSubmitted = uAvail.length && uAvail.every(w => w.submitted);
+          const isAutoCutoff = !isSubmitted && cutoff.isPassed;
 
           const weekCells = period.weeks.map((w, wIdx) => {
-            const entry = uAvail[wIdx] || { status: 'available', reason: '' };
-            const isAvail = entry.status === 'available';
+            const entry = uAvail[wIdx] || { status: 'available', reason: '', submitted: false };
+            const effectiveStatus = (!entry.submitted && cutoff.isPassed) ? 'available' : entry.status;
+            const isAvail = effectiveStatus === 'available';
             return `
               <td class="py-2.5 px-3 text-center">
                 <button type="button" onclick="openMatrixOverrideModal('${u.id}', ${wIdx})"
@@ -2493,6 +2777,13 @@
             `;
           }).join('');
 
+          let confirmBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">Belum Isi</span>`;
+          if (isSubmitted) {
+            confirmBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">Sudah Isi</span>`;
+          } else if (isAutoCutoff) {
+            confirmBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700" title="Otomatis dianggap siap melayani karena melewati batas tanggal 22">Auto-Siap (Tgl 22)</span>`;
+          }
+
           return `
             <tr class="hover:bg-slate-50/90 transition">
               <td class="py-3 px-4 sticky left-0 bg-white sticky-col-shadow z-10">
@@ -2505,9 +2796,7 @@
                 </div>
               </td>
               <td class="py-3 px-4 text-center">
-                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${isSubmitted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                  ${isSubmitted ? 'Sudah Isi' : 'Belum Isi'}
-                </span>
+                ${confirmBadgeHtml}
               </td>
               ${weekCells}
             </tr>
@@ -2531,13 +2820,15 @@
       const period = getActivePeriod();
       if (!user || !period) return;
 
-      const entry = appState.availability[period.id]?.[userId]?.[weekIdx] || { status: 'available', reason: '' };
-      matrixOverrideContext = { userId, weekIdx, status: entry.status };
+      const cutoff = getPeriodCutoffInfo(period);
+      const entry = appState.availability[period.id]?.[userId]?.[weekIdx] || { status: 'available', reason: '', submitted: false };
+      const effectiveStatus = (!entry.submitted && cutoff.isPassed) ? 'available' : entry.status;
+      matrixOverrideContext = { userId, weekIdx, status: effectiveStatus };
 
       document.getElementById('override-modal-title').textContent = user.name;
       document.getElementById('override-modal-sub').textContent = `${period.weeks[weekIdx].label} • ${period.weeks[weekIdx].date}`;
       document.getElementById('override-reason-input').value = entry.reason || '';
-      selectOverrideStatus(entry.status);
+      selectOverrideStatus(effectiveStatus);
 
       const modal = document.getElementById('modal-matrix-override');
       modal.classList.remove('hidden');
@@ -2594,6 +2885,7 @@
 
       const activeIbadahId = period.ibadahId;
       const strictRole = document.getElementById('sched-strict-role').checked;
+      const cutoffInfo = getPeriodCutoffInfo(period);
 
       // Calculate monthly duty counts across ALL ibadah in this period
       const monthlyDutyCounts = {};
@@ -2620,14 +2912,12 @@
         const weekSlots = getWeekSlotsForIbadah(period.id, activeIbadahId, wIdx);
         const weekAssigns = getScheduleAssignments(period.id, activeIbadahId, wIdx);
 
-        // Map userId -> slot label already assigned in THIS week & THIS ibadah (anti-duplicate rule)
         const assignedInSameWeekIbadah = {};
         weekSlots.forEach(s => {
           const uid = weekAssigns[s.slotId];
           if (uid) assignedInSameWeekIbadah[uid] = s.label;
         });
 
-        // Map userId -> other ibadah names assigned on THIS same Sunday
         const assignedInOtherIbadahSameWeek = {};
         appState.ibadahList.forEach(otherIbd => {
           if (otherIbd.id === activeIbadahId) return;
@@ -2657,8 +2947,9 @@
               });
 
               const optionsListHtml = candidates.map(u => {
-                const availEntry = appState.availability[period.id]?.[u.id]?.[wIdx] || { status: 'available' };
-                const isUnavailable = availEntry.status === 'unavailable';
+                const availEntry = appState.availability[period.id]?.[u.id]?.[wIdx] || { status: 'available', submitted: false };
+                const effectiveStatus = (!availEntry.submitted && cutoffInfo.isPassed) ? 'available' : availEntry.status;
+                const isUnavailable = effectiveStatus === 'unavailable';
                 const duplicateSlotLabel = assignedInSameWeekIbadah[u.id];
                 const isDuplicateHere = duplicateSlotLabel && u.id !== selectedUserId;
                 const otherIbadahNote = assignedInOtherIbadahSameWeek[u.id];
@@ -2776,7 +3067,6 @@
       document.getElementById('sched-progress-text').textContent = `${filledSlots} / ${totalSlots}`;
       document.getElementById('sched-progress-pct').textContent = `${pct}%`;
 
-      // Workload Distribution Badges
       const workloadEl = document.getElementById('workload-distribution-list');
       workloadEl.innerHTML = sortedUsersAZ.map(u => {
         const cnt = monthlyDutyCounts[u.id] || 0;
@@ -2833,7 +3123,6 @@
       const weekSlots = getWeekSlotsForIbadah(period.id, activeIbadahId, weekIdx);
       const assigns = getScheduleAssignments(period.id, activeIbadahId, weekIdx);
 
-      // Anti-duplicate validation within same week & same ibadah
       if (userId) {
         const conflictSlot = weekSlots.find(s => s.slotId !== slotId && assigns[s.slotId] === userId);
         if (conflictSlot) {
@@ -3029,8 +3318,8 @@
       if (!period) return;
       const activeIbadahId = period.ibadahId;
       const strictRole = document.getElementById('sched-strict-role').checked;
+      const cutoffInfo = getPeriodCutoffInfo(period);
 
-      // Track monthly workload across all ibadah
       const dutyCount = {};
       appState.users.forEach(u => { dutyCount[u.id] = 0; });
       period.weeks.forEach((_, wIdx) => {
@@ -3057,8 +3346,9 @@
           const eligible = appState.users
             .filter(u => {
               if (usedThisWeekAndIbadah.has(u.id)) return false;
-              const avail = appState.availability[period.id]?.[u.id]?.[wIdx]?.status || 'available';
-              if (avail === 'unavailable') return false;
+              const entry = appState.availability[period.id]?.[u.id]?.[wIdx] || { status: 'available', submitted: false };
+              const effectiveStatus = (!entry.submitted && cutoffInfo.isPassed) ? 'available' : entry.status;
+              if (effectiveStatus === 'unavailable') return false;
               if (strictRole && !(u.ministries || []).includes(slot.ministryName)) return false;
               return true;
             })
@@ -3161,7 +3451,6 @@
           : appState.ibadahList.filter(i => i.id === ibdFilter.value);
 
         container.innerHTML = targetIbadahList.map(ibd => {
-          // Collect union of all slot labels across weeks for this ibadah
           const allRowLabels = [];
           period.weeks.forEach((_, wIdx) => {
             getWeekSlotsForIbadah(period.id, ibd.id, wIdx).forEach(s => {
@@ -3224,13 +3513,11 @@
           `;
         }).join('');
       } else {
-        // Mode Per Minggu (Cross-Ibadah Comparison + Double-Duty Detection)
         const targetWeeks = mggFilter.value === 'all'
           ? period.weeks.map((w, idx) => ({ week: w, wIdx: idx }))
           : [{ week: period.weeks[parseInt(mggFilter.value, 10)], wIdx: parseInt(mggFilter.value, 10) }].filter(x => x.week);
 
         container.innerHTML = targetWeeks.map(({ week, wIdx }) => {
-          // Detect double duties on same Sunday across different ibadah
           const userDutiesOnDate = {};
           appState.ibadahList.forEach(ibd => {
             const slots = getWeekSlotsForIbadah(period.id, ibd.id, wIdx);
@@ -3313,7 +3600,6 @@
       const weekCount = period.weeks.length;
       const ibadahCount = appState.ibadahList.length;
 
-      // Collect all slot structures per ibadah to compute exact canvas height
       const ibadahTables = appState.ibadahList.map(ibd => {
         const labels = [];
         period.weeks.forEach((_, wIdx) => {
@@ -3350,11 +3636,9 @@
       const ctx = canvas.getContext('2d');
       ctx.scale(scale, scale);
 
-      // Background
       ctx.fillStyle = '#f8fafc';
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      // Top Poster Header Banner
       ctx.fillStyle = '#0f172a';
       ctx.beginPath();
       ctx.roundRect(padding, padding, canvasWidth - padding * 2, headerHeight - 16, 18);
@@ -3375,7 +3659,6 @@
         const rowsCount = Math.max(1, labels.length);
         const boxHeight = tableHeaderHeight + rowsCount * rowHeight;
 
-        // Card container
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#cbd5e1';
         ctx.lineWidth = 1;
@@ -3384,7 +3667,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Ibadah Title Bar
         ctx.fillStyle = '#1e1b4b';
         ctx.beginPath();
         ctx.roundRect(padding, cursorY, tableWidth, 34, [14, 14, 0, 0]);
@@ -3394,7 +3676,6 @@
         ctx.font = 'bold 14px Inter, sans-serif';
         ctx.fillText(ibd.name, padding + 16, cursorY + 22);
 
-        // Column Headers
         const colHeaderY = cursorY + 34;
         ctx.fillStyle = '#e2e8f0';
         ctx.fillRect(padding, colHeaderY, tableWidth, 30);
@@ -3409,7 +3690,6 @@
           ctx.fillText(`${w.label} (${w.date})`, x + 12, colHeaderY + 19);
         });
 
-        // Rows
         let rowY = cursorY + tableHeaderHeight;
         if (labels.length === 0) {
           ctx.fillStyle = '#94a3b8';
@@ -3455,12 +3735,10 @@
         cursorY += boxHeight + tableGap;
       });
 
-      // Footer Timestamp
       ctx.fillStyle = '#64748b';
       ctx.font = '500 11px Inter, sans-serif';
       ctx.fillText(`Dicetak melalui Portal Ministry • ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, padding, cursorY + 12);
 
-      // Download PNG
       const link = document.createElement('a');
       const safePeriodName = period.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       link.download = `jadwal-pelayanan-${safePeriodName}.png`;
@@ -3520,7 +3798,6 @@
         if (existing) {
           const oldName = existing.name;
           existing.name = name;
-          // Propagate rename to users & templates
           appState.users.forEach(u => {
             u.ministries = (u.ministries || []).map(mn => mn === oldName ? name : mn);
           });
@@ -3879,15 +4156,15 @@
         info: 'bg-slate-900 border-indigo-500/50 text-white'
       };
       const iconColor = {
-        success: 'text-emerald-400',
-        warning: 'text-amber-400',
-        info: 'text-indigo-400'
+        success: 'bg-emerald-400',
+        warning: 'bg-amber-400',
+        info: 'bg-indigo-400'
       };
       const toast = document.createElement('div');
       toast.className = `pointer-events-auto rounded-2xl border px-4 py-3 shadow-xl animate-fade-slide ${colors[type] || colors.info}`;
       toast.innerHTML = `
         <div class="flex items-start gap-2.5">
-          <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 ${iconColor[type] === 'text-emerald-400' ? 'bg-emerald-400' : iconColor[type] === 'text-amber-400' ? 'bg-amber-400' : 'bg-indigo-400'}"></div>
+          <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 ${iconColor[type] || iconColor.info}"></div>
           <div class="min-w-0 flex-1">
             <div class="font-display font-bold text-xs">${escapeHtml(title)}</div>
             <div class="text-[11px] text-slate-300 mt-0.5 leading-snug">${escapeHtml(message)}</div>
@@ -3902,7 +4179,7 @@
       }, 3400);
     }
 
-    document.addEventListener('click', () => {
+    window.addEventListener('click', () => {
       if (openMinisterPickerId) {
         document.querySelectorAll('.minister-picker-panel').forEach(p => p.classList.add('hidden'));
         openMinisterPickerId = null;
@@ -3911,11 +4188,14 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       loadState();
-      const hasSb = initSupabaseClient();
-      if (hasSb) {
-        await syncAllFromSupabase(false);
-      }
       routeAuthenticatedUser();
+      const connected = initSupabaseClient();
+      if (connected) {
+        const synced = await syncAllFromSupabase(false);
+        if (synced) {
+          routeAuthenticatedUser();
+        }
+      }
     });
   </script>
 </body>
